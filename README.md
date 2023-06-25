@@ -5,7 +5,7 @@
     <img src="https://img.shields.io/badge/Open%20JDK-17-green" alt="JDK 17">
   </a>
   <a href="https://github.com/alkanife/alkabot/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/alkanife/discord-to-json" alt="LICENSE">
+    <img src="https://img.shields.io/github/license/alkanife/discord-to-json?" alt="LICENSE">
   </a>
   <a href="https://github.com/alkanife/alkabot/releases/tag/1.0.0">
     <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="version">
