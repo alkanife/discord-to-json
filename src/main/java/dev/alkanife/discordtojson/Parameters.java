@@ -39,6 +39,14 @@ public class Parameters {
     @ToString.Exclude
     private String token = null;
 
+    @Parameter(
+            names = { "--tokenFile", "-tf"},
+            description = "File containing the Discord token"
+    )
+    @Getter
+    @Setter
+    private String tokenFilePath = "token";
+
     @Parameter (
             names = { "--delay", "-d"},
             description = "The time between each download cycle"

@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
@@ -31,6 +32,8 @@ import java.util.Random;
 
 public class DiscordToJson {
 
+    @Getter
+    private String build, version, fullVersion;
     @Getter
     private final Parameters parameters;
     @Getter
@@ -64,21 +67,36 @@ public class DiscordToJson {
 
         debug("Reading build info");
 
-        String version = Utils.readResource("/version.txt");
-        String build = Utils.readResource("/build.txt");
-        String fullVersion = version + " (" + build + ")";
+        version = Utils.readResource("/version.txt");
+        build = Utils.readResource("/build.txt");
+        fullVersion = version + " (" + build + ")";
 
         if (parameters.isVersion()) {
-            print("discord-to-json version " + version);
-            print("Build date: " + fullVersion);
-            print("https://github.com/alkanife/discord-to-json");
+            printVersion();
             return;
         }
 
         debug("Checking parameters");
         if (parameters.getToken() == null) {
-            print("Invalid Discord token (null)");
-            return;
+            if (parameters.getTokenFilePath() == null) {
+                print("No Discord token");
+                return;
+            }
+
+            debug("Reading Discord token from file");
+
+            File discordTokenFile = new File(parameters.getTokenFilePath());
+
+            if (!discordTokenFile.exists()) {
+                print("Token file not found");
+                return;
+            }
+
+            try {
+                parameters.setToken(Files.readString(discordTokenFile.toPath()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         if (parameters.getDelay() < 1) {
@@ -130,8 +148,9 @@ public class DiscordToJson {
         debug("Creating logger");
         logger = LoggerFactory.getLogger(DiscordToJson.class);
 
-        print("discord-to-json version " + fullVersion);
-        print("https://github.com/alkanife/discord-to-json");
+        print("--------------------------");
+        printVersion();
+        print("--------------------------");
 
         try {
             print("Connecting to Discord...");
@@ -157,6 +176,11 @@ public class DiscordToJson {
     public void debug(String message) {
         if (parameters.isDebug())
             print("[debug]: " + message);
+    }
+
+    public void printVersion() {
+        print("discord-to-json version " + fullVersion);
+        print("https://github.com/alkanife/discord-to-json");
     }
 
     private List<DownloadedMessage> messageList = new ArrayList<>();
@@ -189,14 +213,14 @@ public class DiscordToJson {
         jda.shutdown();
     }
 
-    public void insert(Message message) {
+    public void addMessage(Message message) {
         messages++;
 
         debug("Adding " + message.getId() + " by " + message.getAuthor().getName() + " (" + messages + ")");
 
         DownloadedMessage downloadedMessage = new DownloadedMessage();
         downloadedMessage.setId(message.getId());
-        downloadedMessage.setDate(message.getTimeCreated().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ")));
+        downloadedMessage.setDate(message.getTimeCreated().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ")));
         downloadedMessage.setAuthor(new Author(message.getAuthor().getId(), message.getAuthor().getName()));
         downloadedMessage.setContent(message.getContentDisplay());
 

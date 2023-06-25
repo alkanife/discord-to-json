@@ -21,7 +21,7 @@ public class Fetcher {
             }
 
             for (int i = messageHistory.size()-1; i >= 0; i--)
-                discordToJson.insert(messageHistory.getRetrievedHistory().get(i));
+                discordToJson.addMessage(messageHistory.getRetrievedHistory().get(i));
 
             try {
                 discordToJson.debug("Sleeping " + discordToJson.getParameters().getDelay() + " ms");

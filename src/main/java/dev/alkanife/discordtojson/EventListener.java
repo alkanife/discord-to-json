@@ -1,7 +1,5 @@
 package dev.alkanife.discordtojson;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -44,7 +42,7 @@ public class EventListener extends ListenerAdapter {
                 return;
             }
 
-            discordToJson.insert(message);
+            discordToJson.addMessage(message);
 
             discordToJson.print("Downloading...");
 
