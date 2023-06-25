@@ -87,4 +87,20 @@ public class Parameters {
     @Setter
     private String firstMessageURL = null;
 
+    @Parameter (
+            names = { "--output", "-o" },
+            description = "Output file name. Will use {date}.json by default"
+    )
+    @Getter
+    @Setter
+    private String outputFilePath = null;
+
+    @Parameter (
+            names = { "--replace", "-r" },
+            description = "Replace output file if already existing"
+    )
+    @Getter
+    @Setter
+    private boolean replaceOutputFile = false;
+
 }
