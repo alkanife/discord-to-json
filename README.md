@@ -25,7 +25,9 @@
 ## Overview
 Export Discord messages to JSON
 
-### Usage
+Disclaimer: this is probably very much against Discord's TOS. I am not responsible if you have any issues with Discord after using this program. Use it with knowledge of the consequences it may have, and use it for personal, harmless, non-commercial purposes.
+
+## Usage
 ```
 java -jar discord-to-json.jar [options]
   Options:
