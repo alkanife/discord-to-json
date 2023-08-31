@@ -1,11 +1,11 @@
 package dev.alkanife.discordtojson;
 
 import com.beust.jcommander.Parameter;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class Parameters {
 
     @Parameter(
@@ -13,6 +13,7 @@ public class Parameters {
             description = "Print usage"
     )
     @Getter
+    @Setter
     private boolean help = false;
 
     @Parameter(
@@ -20,6 +21,7 @@ public class Parameters {
             description = "Print usage"
     )
     @Getter
+    @Setter
     private boolean version = false;
 
     @Parameter(
@@ -110,5 +112,21 @@ public class Parameters {
     @Getter
     @Setter
     private boolean replaceOutputFile = false;
+
+    @Parameter (
+            names = { "--cycles", "-C" },
+            description = "The number of download cycles, < or = to 0 is infinite"
+    )
+    @Getter
+    @Setter
+    private int cycles = 0;
+
+    @Parameter (
+            names = { "--logs", "-L" },
+            description = "Keep logs to the desired file path. Example: 'logs.txt'"
+    )
+    @Getter
+    @Setter
+    private String logs = null;
 
 }

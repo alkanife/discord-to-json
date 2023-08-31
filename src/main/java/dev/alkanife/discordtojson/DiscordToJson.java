@@ -1,7 +1,11 @@
 package dev.alkanife.discordtojson;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.FileAppender;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -16,12 +20,11 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
@@ -33,127 +36,70 @@ import java.util.Random;
 public class DiscordToJson {
 
     @Getter
-    private String build, version, fullVersion;
-    @Getter
-    private final Parameters parameters;
+    private final String github, build, version, fullVersion;
+    @Getter @Setter
+    private Parameters parameters;
     @Getter
     private JDA jda;
     @Getter @Setter
-    private int times, messages = 0;
+    private int times = 0;
     @Getter @Setter
     private Logger logger;
     @Getter @Setter
     private Guild guild;
     @Getter @Setter
     private TextChannel textChannel;
+    @Getter
+    private final List<DownloadedMessage> messageList = new ArrayList<>();
 
     public DiscordToJson(String[] args) {
-        parameters = new Parameters();
-        JCommander jCommander = JCommander.newBuilder().programName("discord-to-json").addObject(parameters).build();
-
-        try {
-            jCommander.parse(args);
-        } catch (ParameterException exception) {
-            print("Invalid arguments, see correct usage with '--help'");
-            return;
-        }
-
-        debug("Provided parameters: " + parameters.toString());
-
-        if (parameters.isHelp() || args.length == 0) {
-            jCommander.usage();
-            return;
-        }
-
-        debug("Reading build info");
-
+        // Read build info
+        github = "https://github.com/alkanife/discord-to-json";
         version = Utils.readResource("/version.txt");
         build = Utils.readResource("/build.txt");
         fullVersion = version + " (" + build + ")";
 
-        if (parameters.isVersion()) {
-            printVersion();
+        // Parse args
+        ParamParser paramParser = new ParamParser(this);
+        if (!paramParser.parse(args))
             return;
+
+        // Setup logger
+        Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        root.detachAndStopAllAppenders();
+
+        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<>();
+        consoleAppender.setContext(root.getLoggerContext());
+        consoleAppender.setEncoder(Utils.getPatternLayout(root, parameters.isDebug(), false));
+        consoleAppender.start();
+        root.addAppender(consoleAppender);
+
+        if (parameters.getLogs() != null) {
+            FileAppender<ILoggingEvent> fileAppender = new FileAppender<>();
+            fileAppender.setContext(root.getLoggerContext());
+            fileAppender.setEncoder(Utils.getPatternLayout(root, parameters.isDebug(), true));
+            fileAppender.setAppend(true);
+            fileAppender.setFile(parameters.getLogs());
+            fileAppender.start();
+            root.addAppender(fileAppender);
         }
 
-        debug("Checking parameters");
-        if (parameters.getToken() == null) {
-            if (parameters.getTokenFilePath() == null) {
-                print("No Discord token");
-                return;
-            }
+        root.setLevel(parameters.isDebug() ? Level.DEBUG : Level.INFO);
 
-            debug("Reading Discord token from file");
+        logger = (Logger) LoggerFactory.getLogger(DiscordToJson.class);
+        logger.setLevel(parameters.isDebug() ? Level.DEBUG : Level.INFO);
 
-            File discordTokenFile = new File(parameters.getTokenFilePath());
+        // splash
+        logger.info("--------------------------");
+        logger.info("discord-to-json version " + fullVersion);
+        logger.info("Github: " + github);
+        logger.info("--------------------------");
 
-            if (!discordTokenFile.exists()) {
-                print("Token file not found");
-                return;
-            }
+        logger.debug("Using params " + parameters.toString());
 
-            try {
-                parameters.setToken(Files.readString(discordTokenFile.toPath()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        if (parameters.getDelay() < 1) {
-            print("Delay cannot be < to 1");
-            return;
-        }
-
-        if (parameters.getLimit() < 1 || parameters.getLimit() > 100) {
-            print("Limit cannot be < to 1 or > to 100. See https://javadoc.io/doc/net.dv8tion/JDA/latest/net/dv8tion/jda/api/entities/channel/middleman/MessageChannel.html#getHistoryAfter(long,int)");
-            return;
-        }
-
-        if (parameters.getFirstMessageURL() != null) {
-            if (parameters.getFirstMessageURL().contains("@me")) {
-                print("Cannot read private messages.");
-                return;
-            }
-
-            try {
-                String[] urlArgs = parameters.getFirstMessageURL().replaceAll("https://discord.com/channels/", "").split("/");
-
-                parameters.setGuildId(urlArgs[0]);
-                parameters.setChannelId(urlArgs[1]);
-                parameters.setFirstMessageId(urlArgs[2]);
-
-            } catch (Exception exception) {
-                print("Invalid message URL, please follow the https://discord.com/channels/guildId/channelId/messageId pattern");
-                return;
-            }
-        }
-
-        if (parameters.getGuildId() == null) {
-            print("Invalid guild ID (null)");
-            return;
-        }
-
-        if (parameters.getChannelId() == null) {
-            print("Invalid channel ID (null)");
-            return;
-        }
-
-        if (parameters.getFirstMessageId() == null) {
-            print("Invalid first message ID (null)");
-            return;
-        }
-
-        debug("Using " + parameters.toString());
-
-        debug("Creating logger");
-        logger = LoggerFactory.getLogger(DiscordToJson.class);
-
-        print("--------------------------");
-        printVersion();
-        print("--------------------------");
-
+        // Start JDA
         try {
-            print("Connecting to Discord...");
+            logger.info("Connecting to Discord...");
             JDABuilder jdaBuilder = JDABuilder.createDefault(parameters.getToken());
             jdaBuilder.setRawEventsEnabled(true);
             jdaBuilder.setStatus(OnlineStatus.IDLE);
@@ -161,38 +107,18 @@ public class DiscordToJson {
             jdaBuilder.addEventListeners(new EventListener(this));
             jda = jdaBuilder.build();
         } catch (Exception exception) {
-            print("JDA error");
-            exception.printStackTrace();
+            logger.error("Unexpected JDA error:", exception);
         }
     }
 
-    public void print(String message) {
-        if (logger == null)
-            System.out.println(message);
-        else
-            logger.info(message);
-    }
-
-    public void debug(String message) {
-        if (parameters.isDebug())
-            print("[debug]: " + message);
-    }
-
-    public void printVersion() {
-        print("discord-to-json version " + fullVersion);
-        print("https://github.com/alkanife/discord-to-json");
-    }
-
-    private List<DownloadedMessage> messageList = new ArrayList<>();
-
     public void end() {
-        print("Done! " + messages + " messages have been downloaded");
+        logger.info(messageList.size() + " messages have been downloaded.");
 
         if (parameters.getOutputFilePath() == null)
             parameters.setOutputFilePath(new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date()) + ".json");
 
         try {
-            debug("Building JSON");
+            logger.debug("Building JSON");
             Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
             Type typeDate = new TypeToken<List<DownloadedMessage>>(){}.getType();
             String json = gson.toJson(messageList, typeDate);
@@ -204,26 +130,17 @@ public class DiscordToJson {
                 outputFile = new File(random + parameters.getOutputFilePath());
             }
 
-            print("Exporting to " + parameters.getOutputFilePath());
+            logger.info("Exporting to " + parameters.getOutputFilePath());
             Files.writeString(outputFile.toPath(), json);
         } catch (Exception exception) {
-            exception.printStackTrace();
+            logger.error("Failed to export messages to JSON...", exception);
         }
 
         jda.shutdown();
     }
 
-    public void addMessage(Message message) {
-        messages++;
-
-        debug("Adding " + message.getId() + " by " + message.getAuthor().getName() + " (" + messages + ")");
-
-        DownloadedMessage downloadedMessage = new DownloadedMessage();
-        downloadedMessage.setId(message.getId());
-        downloadedMessage.setDate(message.getTimeCreated().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSZ")));
-        downloadedMessage.setAuthor(new Author(message.getAuthor().getId(), message.getAuthor().getName()));
-        downloadedMessage.setContent(message.getContentDisplay());
-
-        messageList.add(downloadedMessage);
+    public void addMessage(int i, Message message) {
+        logger.debug(" > " + i + "/" + parameters.getLimit() + ": '" + message.getId() + "' by '" + message.getAuthor().getName() + "'");
+        messageList.add(new DownloadedMessage(message));
     }
 }
