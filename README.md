@@ -7,8 +7,8 @@
   <a href="https://github.com/alkanife/alkabot/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/alkanife/discord-to-json?" alt="LICENSE">
   </a>
-  <a href="https://github.com/alkanife/alkabot/releases/tag/1.0.0">
-    <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="version">
+  <a href="https://github.com/alkanife/alkabot/releases/tag/1.0.1">
+    <img src="https://img.shields.io/badge/version-1.0.1-blue" alt="version">
   </a>
 </h1>
 
@@ -23,16 +23,21 @@
 </p>
 
 ## Overview
-Export Discord messages to JSON
+Export Discord messages to JSON (message content, author name, and date ; it does not download attachments)
 
 Disclaimer: this is probably very much against Discord's TOS. I am not responsible if you have any issues with Discord after using this program. Use it with knowledge of the consequences it may have, and use it for personal, harmless, non-commercial purposes.
 
 ## Usage
+This project requires **Java 17** or higher. 
+
 ```
-java -jar discord-to-json.jar [options]
+java -jar Usage: discord-to-json [options]
   Options:
     --channel, -c
       The Discord channel id, only required if not using URL
+    --cycles, -C
+      The number of download cycles, < or = to 0 is infinite
+      Default: 0
     --delay, -d
       The time between each download cycle
       Default: 5000
@@ -44,6 +49,8 @@ java -jar discord-to-json.jar [options]
     --limit, -l
       The number of messages downloaded each cycle
       Default: 70
+    --logs, -L
+      Keep logs to the desired file path. Example: 'logs.txt'
     --message, -m
       The first message's URL
       (https://discord.com/channels/guildId/channelId/messageId)
@@ -68,13 +75,7 @@ java -jar discord-to-json.jar [options]
 ```
 
 ## Project dependencies
-This project requires **Java 17+**.
-
-- [DV8FromTheWorld/**JDA**](https://github.com/DV8FromTheWorld/JDA)
-- [**logback**](https://github.com/qos-ch/logback)
-- [**jCommander**](https://jcommander.org)
-- [**lombok**](https://projectlombok.org)
-- [**gson**](https://github.com/google/gson)
+See [Maven Dependencies](https://github.com/alkanife/discord-to-json/blob/main/pom.xml).
 
 ## License
 Under the [MIT](https://github.com/alkanife/discord-to-json/blob/main/LICENSE) license.
