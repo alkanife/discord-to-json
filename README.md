@@ -31,7 +31,7 @@ Disclaimer: this is probably very much against Discord's TOS. I am not responsib
 This project requires **Java 17** or higher. 
 
 ```
-java -jar Usage: discord-to-json [options]
+Usage: java -jar discord-to-json [options]
   Options:
     --channel, -c
       The Discord channel id, only required if not using URL
